@@ -29,11 +29,11 @@ struct Inbox {
     std::lock_guard<std::mutex> lock(mutex);
     items.emplace_back(attempt, std::move(outcome));
   }
-  std::vector<std::pair<std::uint64_t, TransportOutcome>> drain() {
+  /// Swap the pending items into `out`, which must be empty. The buffers trade places, so neither
+  /// side allocates once both have capacity.
+  void drain(std::vector<std::pair<std::uint64_t, TransportOutcome>>& out) {
     std::lock_guard<std::mutex> lock(mutex);
-    std::vector<std::pair<std::uint64_t, TransportOutcome>> out;
     out.swap(items);
-    return out;
   }
 };
 
@@ -154,6 +154,11 @@ class ClientImpl {
   void handle(CallBase& call, TransportOutcome outcome, Deferred& deferred);
   void on_failure(CallBase& call, Error error, Deferred& deferred);
   Error transport_error(const CallBase& call, const TransportError& failure) const;
+
+  // Reused by every pump() so an idle pump allocates nothing, even with MSVC's debug STL, which
+  // allocates when an empty container is constructed.
+  std::vector<std::pair<std::uint64_t, TransportOutcome>> drained_;
+  Deferred deferred_;
 
   std::uint64_t next_call_ = 0;
   std::uint64_t next_attempt_ = 0;

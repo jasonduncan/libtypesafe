@@ -39,7 +39,9 @@ if(GENERATOR)
 endif()
 string(REPLACE ";" "\;" prefix_arg "${prefix_path}")
 
+# Only the installed configuration exists, so multi-config generators (Visual Studio) must not
+# generate the others: vcpkg's toolchain maps MinSizeRel/RelWithDebInfo to Release, which is absent.
 run(${CMAKE_COMMAND} -S "${SOURCE_DIR}/tests/consumer" -B "${WORK_DIR}/build" ${extra}
-    "-DCMAKE_PREFIX_PATH=${prefix_arg}" -DCMAKE_BUILD_TYPE=${CONFIG})
+    "-DCMAKE_PREFIX_PATH=${prefix_arg}" -DCMAKE_BUILD_TYPE=${CONFIG} -DCMAKE_CONFIGURATION_TYPES=${CONFIG})
 run(${CMAKE_COMMAND} --build "${WORK_DIR}/build" --config ${CONFIG})
 run(${CMAKE_CTEST_COMMAND} --test-dir "${WORK_DIR}/build" -C ${CONFIG} --output-on-failure)
