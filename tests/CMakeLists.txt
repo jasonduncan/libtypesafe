@@ -24,9 +24,12 @@ add_executable(libtypesafe_tests
 target_link_libraries(libtypesafe_tests PRIVATE libtypesafe::libtypesafe Catch2::Catch2WithMain httplib::httplib)
 target_include_directories(libtypesafe_tests PRIVATE ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(libtypesafe_tests PRIVATE cxx_std_17)
+if(WIN32)
+  target_compile_definitions(libtypesafe_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)  # httplib pulls in windows.h
+endif()
 
 include(Catch)
-catch_discover_tests(libtypesafe_tests)
+catch_discover_tests(libtypesafe_tests DISCOVERY_MODE PRE_TEST)
 
 # Live smoke test: calls the real API and spends tokens. Opt in with
 #   TYPESAFE_API_KEY=... LIBTYPESAFE_LIVE=1 ctest -L live

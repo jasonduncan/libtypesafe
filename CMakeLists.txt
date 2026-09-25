@@ -86,6 +86,10 @@ target_compile_options(libtypesafe PRIVATE ${_library_flags} ${_warnings})
 if(MSVC)
   target_compile_definitions(libtypesafe PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
+if(WIN32)
+  # curl.h includes windows.h, whose min/max macros break std::min/std::max.
+  target_compile_definitions(libtypesafe PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
 # transport.cpp holds Transport's key function, so its vtable and typeinfo are emitted there. With
 # RTTI on for that one file, callers built with RTTI (the default) can subclass Transport and link.
 set_source_files_properties(src/transport.cpp PROPERTIES COMPILE_OPTIONS "${_rtti_on}")

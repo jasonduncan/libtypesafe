@@ -1,9 +1,8 @@
 # libtypesafe: design
 
-Status: **M1–M4 done, 2026-09-25.** The library passes its offline, compile-fail, package, and
-live tests, and sends requests byte-identical to the official Python SDK (§6.8, §9). It installs as
-a CMake package and through vcpkg and Conan. The CI matrix, which is the only route to a Windows
-build, has not run yet: it runs on the first push (§10).
+Status: **0.1.0, 2026-09-25 (M1–M4 done).** CI is green on macOS, Linux (GCC 14, Clang 18),
+and Windows (MSVC), under ASan/UBSan/TSan, and for the vcpkg and Conan packages. The live suite
+passes, and requests are byte-identical to the official Python SDK's (§6.8, §9).
 
 ## 1. Goal
 
@@ -411,6 +410,9 @@ From `tests/test_live.cpp` and a side-by-side run against the official Python SD
   normally. The exception is `transport.cpp`: it holds `Transport`'s key function, so
   it is built with RTTI to emit `Transport`'s typeinfo. Without that, a caller built with RTTI
   (the compiler default) could not link a `Transport` subclass. Callers may use either setting.
+- **Windows:** `curl_transport.cpp` is built with `NOMINMAX` and `WIN32_LEAN_AND_MEAN`, because
+  `curl.h` includes `windows.h`. UBSan's `vptr` check can't be used on the library (it needs RTTI),
+  so CI's sanitizer job passes `-fno-sanitize=vptr`.
 - **nlohmann in a mixed build:** nlohmann is header-only, so its inline functions are compiled
   both in the library (exceptions off: errors abort) and in callers (exceptions on: errors throw).
   The library only uses nlohmann's non-throwing calls, so neither path is reached from it.
@@ -480,7 +482,7 @@ Where it has run (2026-09-25):
 | Linux arm64 (Docker `gcc:14`), GCC 14.4 | all 55 pass, 0 warnings |
 | vcpkg overlay port, arm64-osx | installs (with curl from source); the consumer builds and runs against it |
 | Conan 2 recipe, macOS | `conan create .` builds against Conan Center's nlohmann_json and libcurl (OpenSSL); `test_package` runs |
-| Windows MSVC, Linux Clang, CI sanitizers | defined in `.github/workflows/ci.yml`; not yet run (needs a push) |
+| GitHub Actions: Windows MSVC (x64, vcpkg curl), Linux GCC 14 and Clang 18, macOS, ASan+UBSan, TSan, vcpkg + Conan packages | all green (run 36179229027) |
 
 Not done:
 
@@ -496,7 +498,7 @@ Not done:
 | **M1** | `Headers`, `Result`/`Error`, question encoding, response decoding, config | ✅ (OpenAPI golden tests still open) |
 | **M2** | Call state machine, `pump()`, retries, cancellation, logging, blocking helpers, with `FakeTransport` | ✅ idle `pump()` allocates nothing |
 | **M3** | `curl_multi` transport | ✅ local-server tests, live suite, and Python-SDK parity pass; ASan/UBSan/TSan clean |
-| **M4** | Install/export, vcpkg/Conan, CI matrix (macOS clang, Linux GCC/Clang, Windows MSVC) | ✅ `find_package` and `add_subdirectory` consumers pass; vcpkg verified; Conan verified; Linux GCC verified locally. ⏳ The CI matrix, including Windows, runs on the first push |
+| **M4** | Install/export, vcpkg/Conan, CI matrix (macOS clang, Linux GCC/Clang, Windows MSVC) | ✅ `find_package` and `add_subdirectory` consumers pass; vcpkg and Conan verified; the CI matrix, Windows included, is green. Released as 0.1.0 |
 | Later | `system_one_as<T>`, export macro for shared builds, allocator hooks, `raw_json` state | as needed |
 
 ## 11. Open questions

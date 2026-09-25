@@ -262,8 +262,9 @@ void ClientImpl::pump() {
   in_pump = true;
   config.transport->poll();
 
-  Deferred deferred;
-  for (auto& [key, outcome] : inbox->drain()) {
+  Deferred& deferred = deferred_;
+  inbox->drain(drained_);
+  for (auto& [key, outcome] : drained_) {
     for (auto& call : calls) {
       if (call->phase == CallBase::Phase::in_flight && call->attempt_key == key) {
         handle(*call, std::move(outcome), deferred);
@@ -305,7 +306,9 @@ void ClientImpl::pump() {
                              [](const auto& call) { return call->phase == CallBase::Phase::finished; }),
               calls.end());
 
+  drained_.clear();
   for (auto& callback : deferred) callback();
+  deferred.clear();
   in_pump = false;
 }
 
