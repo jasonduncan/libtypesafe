@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Also run the live API tests (needs the TYPESAFE_API_KEY secret)"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 6 * * 1"  # weekly: OpenAPI drift check
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    if: github.event_name != 'schedule'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux GCC 14
+            os: ubuntu-24.04
+            cmake_args: -DCMAKE_CXX_COMPILER=g++-14
+          - name: Linux Clang 18
+            os: ubuntu-24.04
+            cmake_args: -DCMAKE_CXX_COMPILER=clang++-18
+          - name: macOS Clang
+            os: macos-15
+          - name: Windows MSVC
+            os: windows-2022
+            cmake_args: -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+      - name: Dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: vcpkg install curl nlohmann-json --triplet x64-windows
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug ${{ matrix.cmake_args }}
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+      - name: Test
+        run: ctest --test-dir build -C Debug --output-on-failure --parallel 4 -LE live
+
+  sanitizers:
+    name: Sanitizers (${{ matrix.sanitizer }})
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: ["address,undefined", "thread"]
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-18
+          -DLIBTYPESAFE_BUILD_API_CHECKS=OFF
+          "-DCMAKE_CXX_FLAGS=-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
+          "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=${{ matrix.sanitizer }}"
+      - run: cmake --build build --parallel --target libtypesafe_tests
+      - name: Test
+        env:
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+          TSAN_OPTIONS: halt_on_error=1
+        run: ./build/tests/libtypesafe_tests
+
+  packages:
+    name: Packages (vcpkg, Conan)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: vcpkg overlay port
+        run: |
+          "$VCPKG_INSTALLATION_ROOT/vcpkg" install libtypesafe --overlay-ports=ports
+          cmake -S tests/consumer -B consumer-vcpkg -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          cmake --build consumer-vcpkg
+          ./consumer-vcpkg/consumer
+      - name: Conan recipe
+        run: |
+          pipx install "conan>=2"
+          conan profile detect
+          conan create . --build=missing -s compiler.cppstd=17
+
+  live:
+    name: Live API
+    if: github.event_name == 'workflow_dispatch' && inputs.live
+    runs-on: ubuntu-24.04
+    env:
+      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+      LIBTYPESAFE_LIVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DLIBTYPESAFE_BUILD_API_CHECKS=OFF
+      - run: cmake --build build --parallel --target libtypesafe_live_tests
+      - run: ./build/tests/libtypesafe_live_tests
+
+  openapi:
+    name: OpenAPI drift
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: tools/check-openapi.sh

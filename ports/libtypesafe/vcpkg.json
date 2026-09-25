@@ -1,0 +1,20 @@
+{
+  "name": "libtypesafe",
+  "version-semver": "0.1.0",
+  "description": "Unofficial C++17 client for the TypeSafe AI API: typed answers, no exceptions required, non-blocking calls.",
+  "homepage": "https://github.com/jasonduncan/libtypesafe",
+  "license": "MIT",
+  "supports": "!uwp",
+  "dependencies": [
+    "curl",
+    "nlohmann-json",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}
