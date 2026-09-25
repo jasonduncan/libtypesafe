@@ -58,11 +58,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+      # -fno-sanitize=vptr: UBSan's vptr check needs RTTI for every object, and the library is
+      # built without RTTI, so it reports false positives on objects created inside the library.
       - name: Configure
         run: >
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-18
           -DLIBTYPESAFE_BUILD_API_CHECKS=OFF
-          "-DCMAKE_CXX_FLAGS=-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
+          "-DCMAKE_CXX_FLAGS=-fsanitize=${{ matrix.sanitizer }} -fno-sanitize=vptr -fno-omit-frame-pointer"
           "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=${{ matrix.sanitizer }}"
       - run: cmake --build build --parallel --target libtypesafe_tests
       - name: Test

@@ -84,7 +84,7 @@ class CurlTransport final : public Transport {
     curl_easy_setopt(easy, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(easy, CURLOPT_TIMEOUT_MS, static_cast<long>(request.timeout.count()));
     curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT_MS,
-                     static_cast<long>(std::min(request.timeout, options_.connect_timeout).count()));
+                     static_cast<long>((std::min)(request.timeout, options_.connect_timeout).count()));
     curl_easy_setopt(easy, CURLOPT_ERRORBUFFER, transfer->error_buffer);
     curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, on_body);
     curl_easy_setopt(easy, CURLOPT_WRITEDATA, transfer.get());

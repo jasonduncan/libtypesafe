@@ -15,6 +15,17 @@ using fakes::Harness;
 using fakes::json_response;
 using namespace std::chrono_literals;
 
+// Sanitizer runtimes supply their own operator new (TSan's static runtime on Linux clashes with a
+// replacement), so allocation counting runs only in unsanitized builds.
+#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
+#define LIBTYPESAFE_TEST_SANITIZED 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
+#define LIBTYPESAFE_TEST_SANITIZED 1
+#endif
+#endif
+
+#ifndef LIBTYPESAFE_TEST_SANITIZED
 // Counts allocations while enabled, to check that an idle pump() allocates nothing.
 namespace {
 std::atomic<bool> counting{false};
@@ -28,6 +39,7 @@ void* operator new(std::size_t size) {
 }
 void operator delete(void* p) noexcept { std::free(p); }
 void operator delete(void* p, std::size_t) noexcept { std::free(p); }
+#endif
 
 namespace {
 
@@ -372,6 +384,9 @@ TEST_CASE("logs redact credentials; debug shows bodies") {
 }
 
 TEST_CASE("an idle pump() allocates nothing") {
+#ifdef LIBTYPESAFE_TEST_SANITIZED
+  SKIP("allocation counting is off under sanitizers");
+#else
   Harness h;
   h.client.pump();
   allocations = 0;
@@ -379,4 +394,5 @@ TEST_CASE("an idle pump() allocates nothing") {
   for (int i = 0; i < 100; ++i) h.client.pump();
   counting = false;
   CHECK(allocations == 0);
+#endif
 }
