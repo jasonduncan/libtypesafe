@@ -85,6 +85,11 @@ personal or internal builds, point `ClientOptions::base_url` at your own backend
 key and forwards requests, and authenticate your users there (`default_headers` can carry your own
 token).
 
+## Releases
+
+See [CHANGELOG.md](CHANGELOG.md). Versions follow semver; while 0.x, minor versions may change the
+API, and the CMake package version check (`SameMinorVersion`) enforces that.
+
 ## License
 
 MIT. Not affiliated with TypeSafe AI.
