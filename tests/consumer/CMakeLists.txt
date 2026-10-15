@@ -6,7 +6,7 @@ project(libtypesafe_consumer LANGUAGES CXX)
 if(LIBTYPESAFE_SOURCE_DIR)
   add_subdirectory(${LIBTYPESAFE_SOURCE_DIR} libtypesafe)
 else()
-  find_package(libtypesafe 0.1 REQUIRED)
+  find_package(libtypesafe 0.2 REQUIRED)
 endif()
 
 add_executable(consumer main.cpp)

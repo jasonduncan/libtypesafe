@@ -79,8 +79,8 @@ TEST_CASE("a request carries the SDK's headers and body") {
   CHECK_FALSE(request.headers.contains("X-TypeSafe-Retry-Count"));
   CHECK(request.headers.get("Content-Type") == "application/json");
   CHECK(request.headers.get("Accept") == "application/json");
-  CHECK(request.headers.get("User-Agent") == "libtypesafe/0.1.0");
-  CHECK(request.headers.get("X-TypeSafe-SDK") == "libtypesafe/0.1.0");
+  CHECK(request.headers.get("User-Agent") == "libtypesafe/0.2.1");
+  CHECK(request.headers.get("X-TypeSafe-SDK") == "libtypesafe/0.2.1");
   CHECK_THAT(std::string(*request.headers.get("X-TypeSafe-Runtime")), Catch::Matchers::StartsWith("cpp/"));
   CHECK(request.body ==
         R"({"state":"I was charged twice.","model":"jev-1.13.0","questions":{"billing":{"type":"noul","instructions":"Is this about billing?"}}})");

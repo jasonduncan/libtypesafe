@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 (2026-10-14)
+
+Version fix: the sources now report 0.2.1 (CMake, `libtypesafe::version` and User-Agent, Conan, vcpkg). The v0.2.0 tag (62e4f2c) has the image support but still reports 0.1.0.
+
+## 0.2.0 (2026-10-14)
 
 Images and Box (Jev 1.14), following the Python SDK 0.7.5. TypeSafe labels these
 "Dreamer-ready" (not production-ready).

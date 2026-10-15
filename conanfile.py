@@ -10,7 +10,7 @@ required_conan_version = ">=2.0"
 
 class LibtypesafeConan(ConanFile):
     name = "libtypesafe"
-    version = "0.1.0"
+    version = "0.2.1"
     license = "MIT"
     url = "https://github.com/jasonduncan/libtypesafe"
     homepage = "https://github.com/jasonduncan/libtypesafe"
