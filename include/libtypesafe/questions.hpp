@@ -45,6 +45,7 @@ struct Wire;
 struct NoulAnswer;
 struct ChoiceAnswer;
 struct ScoreAnswer;
+struct BoxAnswer;
 template <class E>
 struct EnumChoiceAnswer;
 
@@ -78,6 +79,12 @@ struct ScoreQuestion {
 };
 
 /// A choice question whose labels come from `choice_labels<E>`.
+/// Locate one thing in the request's image (`jev-1.14.0` / `jev-preview` only). Takes no criteria.
+/// There is no "not found" answer: pair it with a Noul presence check. One box per question.
+struct BoxQuestion {
+  Json instructions = nullptr;
+};
+
 template <class E>
 struct EnumChoiceQuestion {
   static_assert(is_choice_enum_v<E>, "specialize libtypesafe::choice_labels<E> for this enum");
@@ -124,6 +131,8 @@ template <class E, std::enable_if_t<std::is_enum_v<E>, int> = 0>
 }
 
 /// `score("How urgent?", {"can wait", "this week", "today"})`: level i is described by rubric[i].
+[[nodiscard]] inline BoxQuestion box(Json instructions) { return {std::move(instructions)}; }
+
 [[nodiscard]] inline ScoreQuestion score(Json instructions, std::vector<Json> rubric) {
   return {std::move(instructions), std::move(rubric)};
 }
@@ -156,6 +165,7 @@ class Questions {
   Key<NoulAnswer> add(std::string name, NoulQuestion question);
   Key<ChoiceAnswer> add(std::string name, ChoiceQuestion question);
   Key<ScoreAnswer> add(std::string name, ScoreQuestion question);
+  Key<BoxAnswer> add(std::string name, BoxQuestion question);
 
   template <class E>
   Key<EnumChoiceAnswer<E>> add(std::string name, EnumChoiceQuestion<E> question) {
@@ -176,6 +186,8 @@ class Questions {
   void add_raw(std::string name, Json question);
 
   [[nodiscard]] bool empty() const noexcept { return entries_.empty(); }
+  /// True when any question (typed or raw) is a Box, which needs the images header.
+  [[nodiscard]] bool has_box() const noexcept;
   [[nodiscard]] std::size_t size() const noexcept { return entries_.size(); }
   /// The first problem recorded by `add`, if any.
   [[nodiscard]] const std::optional<Error>& error() const noexcept { return error_; }
@@ -191,7 +203,7 @@ class Questions {
 
   struct Entry {
     std::string name;
-    std::string type;                 // "noul", "choice", "score", or a raw question's type
+    std::string type;                 // "noul", "choice", "score", "box", or a raw question's type
     Json wire;                        // serialized question
     std::vector<std::string> labels;  // choice labels, used to validate the answer
     std::size_t levels = 0;           // score rubric length, used to validate the answer

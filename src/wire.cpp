@@ -131,8 +131,37 @@ std::string without_userinfo(std::string_view url) {
 // Requests
 // ---------------------------------------------------------------------------
 
+bool Wire::sends_assets(const Json& extra_body, const Assets* assets) {
+  return assets != nullptr && !assets->empty() && !(extra_body.is_object() && extra_body.contains("assets"));
+}
+
+std::string Wire::encode_multipart(const std::string& json, const Assets& assets, const std::string& boundary,
+                                   std::string& content_type) {
+  std::string out;
+  std::size_t size = json.size() + 256;
+  for (const auto& image : assets.images()) size += image.bytes->size() + 256;
+  out.reserve(size);
+  const auto part = [&](const std::string& name, const std::string& type, const char* data, std::size_t n, bool file) {
+    out += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + name + "\"";
+    if (file) out += "; filename=\"" + name + "\"";
+    out += "\r\nContent-Type: " + type + "\r\n\r\n";
+    out.append(data, n);
+    out += "\r\n";
+  };
+  part("request", "application/json", json.data(), json.size(), false);
+  for (std::size_t i = 0; i < assets.images().size(); ++i) {
+    const auto& image = assets.images()[i];
+    part("asset-" + std::to_string(i), image.info.content_type, reinterpret_cast<const char*>(image.bytes->data()),
+         image.bytes->size(), true);
+  }
+  out += "--" + boundary + "--\r\n";
+  content_type = "multipart/form-data; boundary=" + boundary;
+  return out;
+}
+
 Result<std::string> Wire::encode_system_one(const Json& state, const Questions& questions,
-                                            const std::string& model, const Json& extra_body) {
+                                            const std::string& model, const Json& extra_body,
+                                            const Assets* assets) {
   if (!extra_body.is_null() && !extra_body.is_object()) {
     Error error;
     error.message = "extra_body must be a JSON object.";
@@ -144,6 +173,14 @@ Result<std::string> Wire::encode_system_one(const Json& state, const Questions& 
   body["questions"] = questions.to_wire();
   if (extra_body.is_object()) {
     for (auto it = extra_body.begin(); it != extra_body.end(); ++it) body[it.key()] = it.value();
+  }
+  if (sends_assets(extra_body, assets)) {
+    // Each image is named by its part, as the Python SDK names them.
+    Json entries = Json::object();
+    for (std::size_t i = 0; i < assets->images().size(); ++i) {
+      entries[assets->images()[i].placeholder] = {{"type", "image"}, {"part", "asset-" + std::to_string(i)}};
+    }
+    body["assets"] = std::move(entries);
   }
   return dump(body);
 }
@@ -240,6 +277,22 @@ Result<SystemOneResult> Wire::decode_system_one(const HttpResponse& response, co
         return fail(at + ".probabilities");
       }
       result.answers_.emplace_back(name, std::move(answer));
+    } else if (type_name == "box") {
+      BoxAnswer answer;
+      const Json* box = member(raw, "box");
+      if (box == nullptr || !box->is_object()) return fail(at + ".box");
+      for (const auto& [key, out] : {std::pair{"top", &answer.box.top}, std::pair{"bottom", &answer.box.bottom},
+                                     std::pair{"left", &answer.box.left}, std::pair{"right", &answer.box.right}}) {
+        if (!read_number(*box, key, *out) || *out < 0 || *out > 1) return fail(at + ".box." + key);
+      }
+      if (answer.box.top > answer.box.bottom || answer.box.left > answer.box.right) return fail(at + ".box");
+      const Json* confidence = member(raw, "confidence");
+      if (confidence != nullptr && !confidence->is_null()) {
+        double c = 0;
+        if (!read_number(raw, "confidence", c) || c < 0 || c > 1) return fail(at + ".confidence");
+        answer.confidence = c;
+      }
+      result.answers_.emplace_back(name, answer);
     } else {
       if (context.warn) {
         context.warn("answer \"" + name + "\" has unrecognized type \"" + type_name +
@@ -263,6 +316,8 @@ Result<SystemOneResult> Wire::decode_system_one(const HttpResponse& response, co
           std::find(entry.labels.begin(), entry.labels.end(), choice->choice) == entry.labels.end()) {
         return fail(at + ".choice");
       }
+    } else if (entry.type == "box") {
+      if (!std::holds_alternative<BoxAnswer>(*answer)) return fail(at + ".type");
     } else if (entry.type == "score") {
       const auto* score = std::get_if<ScoreAnswer>(answer);
       if (score == nullptr) return fail(at + ".type");

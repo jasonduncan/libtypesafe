@@ -74,13 +74,28 @@ struct EnumChoiceAnswer {
   }
 };
 
+/// A box's edges as fractions (0 to 1) of the image's height (`top`, `bottom`) and width (`left`, `right`).
+struct BoxCoordinates {
+  double top = 0;
+  double bottom = 0;
+  double left = 0;
+  double right = 0;
+};
+
+/// The answer to a Box question: one box, always (there is no "not found").
+struct BoxAnswer {
+  BoxCoordinates box;
+  /// From 0 to 1, or nullopt when the model doesn't provide one.
+  std::optional<double> confidence;
+};
+
 /// An answer whose type this SDK version does not model. Kept rather than dropped.
 struct UnknownAnswer {
   std::string type;
   Json raw;
 };
 
-using Answer = std::variant<NoulAnswer, ChoiceAnswer, ScoreAnswer, UnknownAnswer>;
+using Answer = std::variant<NoulAnswer, ChoiceAnswer, ScoreAnswer, BoxAnswer, UnknownAnswer>;
 
 /// Token counts, when the server reports them.
 struct Usage {
@@ -127,6 +142,9 @@ class SystemOneResult {
   }
   [[nodiscard]] const ScoreAnswer& operator[](const Key<ScoreAnswer>& key) const {
     return get<ScoreAnswer>(key.name());
+  }
+  [[nodiscard]] const BoxAnswer& operator[](const Key<BoxAnswer>& key) const {
+    return get<BoxAnswer>(key.name());
   }
 
   template <class E>

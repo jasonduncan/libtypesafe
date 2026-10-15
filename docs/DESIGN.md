@@ -501,6 +501,18 @@ Not done:
 | **M4** | Install/export, vcpkg/Conan, CI matrix (macOS clang, Linux GCC/Clang, Windows MSVC) | ✅ `find_package` and `add_subdirectory` consumers pass; vcpkg and Conan verified; the CI matrix, Windows included, is green. Released as 0.1.0 |
 | Later | `system_one_as<T>`, export macro for shared builds, allocator hooks, `raw_json` state | as needed |
 
+## 10a. Images and Box (2026-10-14)
+
+Ported from typesafe-sdk-python 0.7.5. The request JSON matches the Python SDK's: `assets` comes
+last, after any `extra_body` fields, and each image is `{"type":"image","part":"asset-<i>"}` in
+the order added; an `assets` field in `extra_body` wins and no parts are sent. The multipart
+layout matches `encode_multipart` (part `request` as `application/json`, then
+`asset-<i>` with `filename="asset-<i>"` and the detected content type; random 32-hex boundary).
+Not ported: the Python SDK's automatic discovery of `<image:...>` references and zstd request
+compression. Assets are checked at `add_image`, like `Questions`, and the call returns the
+first problem without sending. The images header is added automatically (the Python SDK leaves
+it to `extra_headers`); a caller-set value is kept.
+
 ## 11. Open questions
 
 1. **Exceptions opt-in?** Resolved as no for v1: `Result` works in every configuration. A thin

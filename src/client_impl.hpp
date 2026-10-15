@@ -52,6 +52,7 @@ class CallBase {
   std::string url;
   std::string endpoint;  // for messages: method + URL without credentials
   std::string body;
+  std::string log_body;  // for debug logs when `body` is multipart (binary)
   Headers headers;  // final headers, without the retry count
   milliseconds timeout{0};
   RetryPolicy retry;

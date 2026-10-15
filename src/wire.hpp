@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "libtypesafe/answers.hpp"
+#include "libtypesafe/assets.hpp"
 #include "libtypesafe/json.hpp"
 #include "libtypesafe/questions.hpp"
 #include "libtypesafe/result.hpp"
@@ -28,7 +29,17 @@ struct DecodeContext {
 struct Wire {
   /// `{"state", "model", "questions"}` with `extra_body` shallow-merged over it.
   static Result<std::string> encode_system_one(const Json& state, const Questions& questions,
-                                               const std::string& model, const Json& extra_body);
+                                               const std::string& model, const Json& extra_body,
+                                               const Assets* assets = nullptr);
+
+  /// Whether the request will send `assets` as file parts: there are some, and `extra_body`
+  /// doesn't replace the `assets` field (as in the Python SDK, extra_body wins).
+  static bool sends_assets(const Json& extra_body, const Assets* assets);
+
+  /// A multipart/form-data body: the JSON as part `request`, then each image as part `asset-<i>`,
+  /// exactly as the Python SDK encodes it. Returns the body; `content_type` gets the header value.
+  static std::string encode_multipart(const std::string& json, const Assets& assets, const std::string& boundary,
+                                      std::string& content_type);
 
   /// Decode a 2xx System One response and check it answers `questions`.
   static Result<SystemOneResult> decode_system_one(const HttpResponse& response,

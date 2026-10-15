@@ -89,6 +89,25 @@ Key<ScoreAnswer> Questions::add(std::string name, ScoreQuestion question) {
   return Key<ScoreAnswer>(std::move(name));
 }
 
+Key<BoxAnswer> Questions::add(std::string name, BoxQuestion question) {
+  if (accept_name(name)) {
+    if (question.instructions.is_null()) {
+      fail("Box question \"" + name + "\" needs instructions describing what to locate.");
+    } else {
+      Json wire = {{"type", "box"}, {"instructions", std::move(question.instructions)}};
+      entries_.push_back({name, "box", std::move(wire), {}, 0});
+    }
+  }
+  return Key<BoxAnswer>(std::move(name));
+}
+
+bool Questions::has_box() const noexcept {
+  for (const auto& entry : entries_) {
+    if (entry.type == "box") return true;
+  }
+  return false;
+}
+
 void Questions::add_raw(std::string name, Json question) {
   if (!accept_name(name)) return;
   const auto type = question.is_object() ? question.find("type") : question.end();

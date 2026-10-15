@@ -174,7 +174,8 @@ void ClientImpl::send(CallBase& call) {
 
   if (logger.enabled(LogLevel::debug)) {
     logger.write(LogLevel::debug, call.tag() + " -> " + without_userinfo(call.url) +
-                                      " headers=" + describe_headers(request.headers) + " body=" + call.body);
+                                      " headers=" + describe_headers(request.headers) +
+                                      " body=" + (call.log_body.empty() ? call.body : call.log_body));
   }
   const std::uint64_t key = call.attempt_key;
   call.transfer = config.transport->start(
@@ -405,10 +406,26 @@ Pending<SystemOneResult> Client::system_one_async(Json state, Questions question
   if (shared->empty()) {
     return submit_call(impl, slot, std::move(call), detail::invalid("At least one question is required."));
   }
+  if (options.assets.error()) return submit_call(impl, slot, std::move(call), *options.assets.error());
   auto body = detail::Wire::encode_system_one(state, *shared, options.model.value_or(impl.config.default_model),
-                                              options.extra_body);
+                                              options.extra_body, &options.assets);
   if (!body) return submit_call(impl, slot, std::move(call), body.error());
-  call->body = std::move(*body);
+  const bool with_assets = detail::Wire::sends_assets(options.extra_body, &options.assets);
+  const bool images = with_assets || shared->has_box() ||
+                      (options.extra_body.is_object() && options.extra_body.contains("assets"));
+  if (images && !call->headers.contains(images_header)) call->headers.set(std::string(images_header), "true");
+  if (with_assets) {
+    std::string content_type;
+    call->log_body = *body + " (+" + std::to_string(options.assets.size()) + " image parts, " +
+                     std::to_string(options.assets.total_bytes()) + " bytes)";
+    // A random boundary, as the Python SDK uses (uuid4().hex): practically never in the content.
+    std::string boundary = new_placeholder();
+    boundary.erase(std::remove(boundary.begin(), boundary.end(), '-'), boundary.end());
+    call->body = detail::Wire::encode_multipart(*body, options.assets, boundary, content_type);
+    call->headers.set("Content-Type", content_type);
+  } else {
+    call->body = std::move(*body);
+  }
   return submit_call(impl, slot, std::move(call), std::nullopt);
 }
 

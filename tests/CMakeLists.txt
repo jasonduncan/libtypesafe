@@ -20,7 +20,8 @@ add_executable(libtypesafe_tests
   test_wire.cpp
   test_config.cpp
   test_client.cpp
-  test_curl.cpp)
+  test_curl.cpp
+  test_images.cpp)
 target_link_libraries(libtypesafe_tests PRIVATE libtypesafe::libtypesafe Catch2::Catch2WithMain httplib::httplib)
 target_include_directories(libtypesafe_tests PRIVATE ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(libtypesafe_tests PRIVATE cxx_std_17)

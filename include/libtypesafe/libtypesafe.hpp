@@ -3,6 +3,7 @@
 #include <string_view>
 
 #include "libtypesafe/answers.hpp"
+#include "libtypesafe/assets.hpp"
 #include "libtypesafe/client.hpp"
 #include "libtypesafe/json.hpp"
 #include "libtypesafe/questions.hpp"

@@ -70,6 +70,7 @@ target_link_libraries(libtypesafe_headers INTERFACE nlohmann_json::nlohmann_json
 
 # Static only for now: a shared build needs export macros on the public classes.
 add_library(libtypesafe STATIC
+  src/assets.cpp
   src/client.cpp
   src/config.cpp
   src/headers.cpp
