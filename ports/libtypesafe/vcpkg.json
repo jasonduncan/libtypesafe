@@ -1,6 +1,6 @@
 {
   "name": "libtypesafe",
-  "version-semver": "0.2.0",
+  "version-semver": "0.2.1",
   "description": "Unofficial C++17 client for the TypeSafe AI API: typed answers, no exceptions required, non-blocking calls.",
   "homepage": "https://github.com/jasonduncan/libtypesafe",
   "license": "MIT",
