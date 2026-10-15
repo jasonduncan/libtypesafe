@@ -69,6 +69,37 @@ conan create path/to/libtypesafe --build=missing -s compiler.cppstd=17
 
 Then `find_package(libtypesafe CONFIG REQUIRED)` as above.
 
+## Images and Box (Jev 1.14)
+
+TypeSafe accepts PNG/JPEG images anywhere text goes ("Dreamer-ready": may change). List each
+image once in `CallOptions::assets` under a placeholder, and write the placeholder where the
+image belongs:
+
+```cpp
+const std::string photo = libtypesafe::new_placeholder();
+libtypesafe::CallOptions call;
+call.model = "jev-1.14.0";                       // Box needs 1.14
+call.assets.add_image(photo, read_file("kitchen.jpg"));
+
+libtypesafe::Questions q;
+auto visible = q.add("mug_visible", libtypesafe::noul("Is there a coffee mug in `photo`?"));
+auto mug = q.add("mug", libtypesafe::box("the coffee mug in `photo`"));
+auto result = client.system_one({{"photo", photo}}, q, call);
+if (result && (*result)[visible].yes()) {
+  const auto& box = (*result)[mug].box;          // top/bottom/left/right, fractions of the image
+}
+```
+
+- Sent as `multipart/form-data` like the Python SDK; the `TypeSafe-Danger-Zone-Images: true`
+  header is added for any asset or Box question.
+- Checked before sending (`inspect_image`): PNG/JPEG still, at most 16 MiB, each side
+  256-1568 px, area 78,400-2,458,624 px, 32 MiB per request. Images are rejected, not resized,
+  and EXIF orientation is ignored by the API: rotate pixels yourself.
+- Box always returns a box (no "not found"): pair it with a Noul presence check, as above.
+- Several frames go in the state as an array, oldest first:
+  `{"frames", {{{"seconds_ago", 2}, {"frame", f0}}, {{"seconds_ago", 0}, {"frame", f1}}}}`.
+- Choice criteria are a label → description map; descriptions can hold placeholders.
+
 ## Build and test
 
 ```sh

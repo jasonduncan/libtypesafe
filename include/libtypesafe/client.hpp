@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "libtypesafe/answers.hpp"
+#include "libtypesafe/assets.hpp"
 #include "libtypesafe/json.hpp"
 #include "libtypesafe/questions.hpp"
 #include "libtypesafe/result.hpp"
@@ -70,6 +71,10 @@ struct CallOptions {
   Headers headers;
   /// System One only: a JSON object shallow-merged over the request body, last write wins.
   Json extra_body = nullptr;
+  /// System One only: images referenced by placeholder in the state or questions, sent as
+  /// multipart file parts. Any asset or Box question adds `TypeSafe-Danger-Zone-Images: true`.
+  /// An `assets` field in `extra_body` replaces these (sent as JSON, e.g. base64 assets).
+  Assets assets;
 };
 
 namespace detail {

@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+Images and Box (Jev 1.14), following the Python SDK 0.7.5. TypeSafe labels these
+"Dreamer-ready" (not production-ready).
+
+- `CallOptions::assets` (`Assets::add_image(placeholder, bytes)`): images referenced by
+  placeholder anywhere text goes (state, instructions, criteria), sent as `multipart/form-data`
+  (JSON part `request`, file parts `asset-<i>`), with the same request JSON as the Python SDK
+- `TypeSafe-Danger-Zone-Images: true` is added to every request with an asset or a Box question
+- `inspect_image` and `Assets` check images before sending: PNG/JPEG still (no animated PNG),
+  16 MiB per file, 256-1568 px per side, 78,400-2,458,624 px area, 32 MiB per request; report
+  EXIF orientation and progressive JPEGs
+- `box()` questions and a typed `BoxAnswer` (`BoxCoordinates` + optional `confidence`), checked
+  on decode; no more "unrecognized type" warning for box answers
+- `new_placeholder()` (UUID v4); multi-frame state is a JSON array of frames
+- base64 assets in `extra_body["assets"]` still work, and replace `CallOptions::assets`
+
 ## 0.1.0 (2026-09-25)
 
 First release. An unofficial C++17 client for the TypeSafe AI API, ported from the official
