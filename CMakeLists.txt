@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(libtypesafe VERSION 0.1.0 LANGUAGES CXX)
+project(libtypesafe VERSION 0.2.0 LANGUAGES CXX)
 
 option(LIBTYPESAFE_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(LIBTYPESAFE_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-10-14)
 
 Images and Box (Jev 1.14), following the Python SDK 0.7.5. TypeSafe labels these
 "Dreamer-ready" (not production-ready).
