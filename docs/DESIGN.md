@@ -1,6 +1,6 @@
 # libtypesafe: design
 
-Status: **0.1.0, 2026-09-25 (M1–M4 done).** CI is green on macOS, Linux (GCC 14, Clang 18),
+Status: **0.2.0, 2026-10-14 (images and Box; 0.1.0 was M1–M4, 2026-09-25).** CI is green on macOS, Linux (GCC 14, Clang 18),
 and Windows (MSVC), under ASan/UBSan/TSan, and for the vcpkg and Conan packages. The live suite
 passes, and requests are byte-identical to the official Python SDK's (§6.8, §9).
 
